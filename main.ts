@@ -26,10 +26,10 @@ export default class PasteURLPlugin extends Plugin {
                 let title = '';
                 let paste_url = '';
                 
-                https.get(result, (res) => {
+                https.get(result, (res: any) => {
                 
                     let data = ''
-                    res.on('data', (d) => {
+                    res.on('data', (d: any) => {
                     data += d;
                     });
                 
@@ -50,7 +50,7 @@ export default class PasteURLPlugin extends Plugin {
                     }
                     });
                 
-                }).on('error', (e) => {
+                }).on('error', (e: any) => {
                     console.error(e);
                     paste_url = 'Error';
                 }); 
@@ -70,10 +70,10 @@ export default class PasteURLPlugin extends Plugin {
                     let title = '';
                     let paste_url = '';
                     
-                    https.get(result, (res) => {
+                    https.get(result, (res: any) => {
                     
                         let data = ''
-                        res.on('data', (d) => {
+                        res.on('data', (d: any) => {
                         data += d;
                         });
                     
@@ -94,7 +94,7 @@ export default class PasteURLPlugin extends Plugin {
                         }
                         });
                     
-                    }).on('error', (e) => {
+                    }).on('error', (e: any) => {
                         console.error(e);
                         paste_url = 'Error';
                     }); 
