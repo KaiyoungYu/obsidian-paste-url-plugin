@@ -19,68 +19,78 @@ export default class PasteURLPlugin extends Plugin {
 
 		console.log('我进来了');
 
+		// 获取一个 url 文章的标题
+		function get_title(app:App, result: string) {
+			let title = '';
+			let paste_url = '';
+			
+			const options = {
+				headers: {
+					'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+					'Referrer-Policy': 'strict-origin-when-cross-origin'
+				}
+			};
+			
+			https.get(result, options, (res: any) => {
+			
+					let data = ''
+					res.on('data', (d: any) => {
+						data += d;
+					});
+			
+					res.on('end', () => {
+						console.log(data)
+						const $ = cheerio.load(data);
+			
+						const regex_wx = /https:\/\/mp.weixin.qq.com(.*)/
+			
+						if (result.match(regex_wx) ) {
+							console.log('wx branch');
+							
+							const h1Element = $('h1.rich_media_title');
+							const title = h1Element.text();
+							paste_url = `[微信公众号文章](${result})`;
+			
+						} else {
+							console.log('main branch');
+			
+							const el_title = $('title');
+							const title_text = el_title.text();
+			
+							const el_h1 = $('h1');
+							const h1_text = el_h1.text();
+			
+							const all_text = title_text + ' ' + h1_text;
+							const cleaned_text = all_text.replace(/\s+/g, ' ').trim();
+							title = cleaned_text
+			
+							paste_url = `[${title}](${result})`;
+							
+						}
+						console.log(data)
+						console.log(title)
+						console.log(result)
+			
+						const view = app.workspace.getActiveViewOfType(MarkdownView);
+						// Make sure the user is editing a Markdown file.
+						if (view) {
+								const cursor = view.editor.getCursor();
+								view.editor.replaceRange(paste_url, cursor);
+						}
+					});
+			
+			}).on('error', (e: any) => {
+					console.error(e);
+					paste_url = 'Error';
+			}); 
+		}
+		
+
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('cherry', 'Paste URL', (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
-			new PasteURLModal(this.app, (result) => {
-				let title = '';
-				let paste_url = '';
-
-				const options = {
-					headers: {
-						'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-						'Referrer-Policy': 'strict-origin-when-cross-origin'
-					}
-				};
-				
-				https.get(result, options, (res: any) => {
-				
-						let data = ''
-						res.on('data', (d: any) => {
-							data += d;
-						});
-				
-						res.on('end', () => {
-
-							const regex = /<title(.*?)>(.*?)<\/title>/;
-							const match = data.match(regex);
-
-							const regex2 = /<h1(.*?)>(.*?)<\/h1>/;
-							const match2 = data.match(regex2);
-
-							const regex3 = /<meta property=\"twitter:title\" content=\"(.*?)\">/;
-							const match3 = data.match(regex3);
-
-							if (match && match[1]){
-								title = match[2];
-							} else if(match2 && match2[2]) {
-								title = match2[2];
-							} else if(match3 && match3[1]){
-								title = match3[1];
-							} else {
-								title = '未获得标题';
-							}
-
-							// console.log(title);
-							// console.log(`title is ${title}`);
-							paste_url = `[${title}](${result})`;
-							// console.log(`[${title}](${result})`);
-
-							// new Notice(`${paste_url}的标题是${title}`);
-			
-							const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-							// Make sure the user is editing a Markdown file.
-							if (view) {
-									const cursor = view.editor.getCursor();
-									view.editor.replaceRange(paste_url, cursor);
-							}
-						});
-				
-				}).on('error', (e: any) => {
-						console.error(e);
-						paste_url = 'Error';
-				}); 
-			}).open();
+			new PasteURLModal(this.app, (result) => get_title(this.app, result)
+			).open();
 		});
         
 		// Perform additional things with the ribbon
@@ -91,66 +101,8 @@ export default class PasteURLPlugin extends Plugin {
 			id: 'past-url',
 			name: 'Paste URL',
 			callback: () => {
-				new PasteURLModal(this.app, (result) => {
-                    let title = '';
-                    let paste_url = '';
-
-										const options = {
-											headers: {
-												'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-												'Referrer-Policy': 'strict-origin-when-cross-origin'
-											}
-										};
-                    
-                    https.get(result, options, (res: any) => {
-                    
-                        let data = ''
-                        res.on('data', (d: any) => {
-                        	data += d;
-                        });
-                    
-                        res.on('end', () => {
-
-													const regex = /<title(.*?)>(.*?)<\/title>/;
-													const match = data.match(regex);
-
-													const regex2 = /<h1(.*?)>(.*?)<\/h1>/;
-													const match2 = data.match(regex2);
-
-													const regex3 = /<meta property=\"twitter:title\" content=\"(.*?)\">/;
-													const match3 = data.match(regex3);
-
-													if (match && match[1]){
-														title = match[2];
-													} else if(match2 && match2[2]) {
-														title = match2[2];
-													} else if(match3 && match3[1]){
-														title = match3[1];
-													} else {
-														title = '未获得标题';
-													}
-
-													// console.log(title);
-													// console.log(`title is ${title}`);
-													paste_url = `[${title}](${result})`;
-													// console.log(`[${title}](${result})`);
-
-													// new Notice(`${paste_url}的标题是${title}`);
-									
-													const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-													// Make sure the user is editing a Markdown file.
-													if (view) {
-															const cursor = view.editor.getCursor();
-															view.editor.replaceRange(paste_url, cursor);
-													}
-                        });
-                    
-                    }).on('error', (e: any) => {
-                        console.error(e);
-                        paste_url = 'Error';
-                    }); 
-
-                }).open();
+				new PasteURLModal(this.app, (result) => get_title(this.app, result)
+        ).open();
 			}
 		});
 
@@ -192,7 +144,7 @@ class PasteURLModal extends Modal {
 
 	onOpen() {
 		const {contentEl} = this;
-		contentEl.createEl("h1", { text: "请输入URL："});
+		contentEl.createEl("h3", { text: "请输入URL："});
 
 		new Setting(contentEl)
 		.setName("URL")
@@ -201,7 +153,7 @@ class PasteURLModal extends Modal {
 			this.result = value
 		  }));
 
-        new Setting(contentEl)
+    new Setting(contentEl)
 		.addButton((btn) =>
 			btn
 			.setButtonText("提交")
@@ -209,15 +161,14 @@ class PasteURLModal extends Modal {
 			.onClick(() => {
 				this.close();
 				this.onSubmit(this.result);
-                // console.log(this.result);
 			}));
         
-        contentEl.addEventListener("keyup", ({key}) => {
-            if( key == 'Enter' && this.result !== undefined) {
-                this.close();
-				this.onSubmit(this.result);
-            }
-        });
+			contentEl.addEventListener("keyup", ({key}) => {
+					if( key == 'Enter' && this.result !== undefined) {
+							this.close();
+			this.onSubmit(this.result);
+					}
+			});
 		
 	}
 
